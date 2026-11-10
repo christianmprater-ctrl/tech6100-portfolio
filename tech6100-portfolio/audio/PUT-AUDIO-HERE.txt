@@ -1,0 +1,9 @@
+Put your music files in this folder (mp3 is safest; wav, ogg and m4a also work).
+
+The page currently looks for:
+  track-01.mp3
+  track-02.mp3
+
+Either name your files exactly like that, or open index.html in a text editor,
+search for "const TRACKS" and change each "src" to match your filename.
+Use lowercase letters, no spaces (use hyphens). You can delete this note afterwards.

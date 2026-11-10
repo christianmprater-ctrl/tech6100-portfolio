@@ -1,0 +1,16 @@
+Put your images in this folder (jpg is safest; png and webp also work).
+
+The page currently looks for:
+  hero.jpg      - the big background image at the top (wide landscape, ~2400px wide)
+  art-01.jpg    - gallery artwork (about 1600px on the long edge is plenty)
+  art-02.jpg
+  art-03.jpg
+  art-04.jpg    - shown as a wide panorama tile
+  art-05.jpg    - shown as a tall tile
+  art-06.jpg
+  art-07.jpg
+
+Either name your files exactly like that, or open index.html in a text editor,
+search for "const GALLERY" and change each "src" to match your filename.
+(For the hero, search for "--hero-image".)
+Use lowercase letters, no spaces (use hyphens). You can delete this note afterwards.
