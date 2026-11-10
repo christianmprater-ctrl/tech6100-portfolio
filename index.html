@@ -23,7 +23,7 @@
    6. Audio player
    7. Films
    8. Gallery + lightbox
-   9. Footer
+   9. About / contact + footer
    10. Motion & responsive
 
    Design language: bright gallery-white surfaces, soft Apple-style grays,
@@ -351,8 +351,36 @@ h1, h2, h3 { font-family: var(--font-sans); font-weight: 600; margin: 0; line-he
 }
 .lightbox__close:hover { border-color: var(--c-charcoal); }
 
+/* 8b. ABOUT / CONTACT ------------------------------------------------------
+   Photo on the left, bio + email on the right. Stacks on phones.           */
+.contact { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(2rem, 6vw, 5.5rem); align-items: center; }
+.contact__photo { position: relative; aspect-ratio: 4 / 5; overflow: hidden; border-radius: var(--r-lg); background: var(--c-gray-100); }
+.contact__photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* Placeholder shown until images/portrait.jpg exists */
+.contact__photo.is-missing img { display: none; }
+.contact__photo.is-missing { background: repeating-linear-gradient(135deg, #f1f1f3 0 14px, #e9e9ec 14px 28px); }
+.contact__photo.is-missing::after {
+  content: "Add your photo\A images/portrait.jpg"; white-space: pre; text-align: center; line-height: 1.8;
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--c-gray-400);
+}
+.contact__bio { margin-top: 1.75rem; max-width: 36rem; }
+.contact__bio p { margin: 0 0 1.1rem; font-size: clamp(1.05rem, 1.5vw, 1.2rem); line-height: 1.55; letter-spacing: -.01em; color: var(--c-gray-700); }
+.contact__email { margin-top: 2.5rem; padding-top: 1.75rem; border-top: 1px solid var(--c-gray-300); }
+.contact__label { display: block; margin-bottom: .6rem; font-family: var(--font-mono); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--c-gray-600); }
+.contact__link {
+  display: inline-block; font-size: clamp(1.4rem, 3.4vw, 2.3rem); font-weight: 600; letter-spacing: -.035em; word-break: break-word;
+  border-bottom: 1px solid var(--c-gray-300); padding-bottom: .15rem;
+  transition: border-color .3s var(--ease);
+}
+.contact__link:hover { border-color: var(--c-charcoal); }
+@media (max-width: 760px) {
+  .contact { grid-template-columns: 1fr; }
+  .contact__photo { max-width: 22rem; }
+}
+
 /* 9. FOOTER --------------------------------------------------------------- */
-.site-footer { padding-block: 2.5rem; background: var(--c-paper); border-top: 1px solid var(--c-gray-200); font-size: .8rem; color: var(--c-gray-600); }
+.site-footer { padding-block: 2.5rem; background: var(--c-white); border-top: 1px solid var(--c-gray-200); font-size: .8rem; color: var(--c-gray-600); }
 .site-footer .container { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem 2rem; }
 .site-footer a { transition: color .25s var(--ease); }
 .site-footer a:hover { color: var(--c-charcoal); }
@@ -473,15 +501,39 @@ h1, h2, h3 { font-family: var(--font-sans); font-weight: 600; margin: 0; line-he
     </div>
   </section>
 
+  <!-- ===================== 5. ABOUT / CONTACT =====================
+       Photo, bio and email. Edit the text below directly; the photo and
+       email address are set in the CONTACT block of the script. -->
+  <section class="section section--alt" id="contact" aria-labelledby="contact-title">
+    <div class="container contact">
+      <div class="contact__photo reveal" id="contact-photo">
+        <img id="contact-img" alt="Portrait of Christian Prater" loading="lazy">
+      </div>
+      <div class="contact__text reveal">
+        <p class="tag"><b>04</b> About &amp; contact</p>
+        <h2 class="section__title" id="contact-title">Hello, I'm Christian.</h2>
+        <!-- >>> EDIT YOUR BIO HERE (each <p>...</p> is one paragraph; add or remove as you like) -->
+        <div class="contact__bio">
+          <p>I'm a composer working at the intersection of generative AI and manual orchestral composition.</p>
+          <p>Replace this with your own short bio: where you're based, what you're working on, and what you're open to, such as collaborations, commissions or scoring.</p>
+        </div>
+        <div class="contact__email">
+          <span class="contact__label">Email</span>
+          <a class="contact__link" data-email href="mailto:hello@example.com">hello@example.com</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </main>
 
 <!-- ===================== FOOTER ===================== -->
-<footer class="site-footer" id="contact">
+<footer class="site-footer">
   <div class="container">
     <span>© <span id="year"></span> Christian Prater</span>
     <div class="footer__links">
-      <!-- >>> EDIT CONTACT LINK -->
-      <a href="mailto:christianmprater@gmail.com">christianmprater@gmail.com</a>
+      <!-- Email is set in the CONTACT block of the script -->
+      <a data-email href="mailto:hello@example.com">hello@example.com</a>
       <a href="#top">Back to top ↑</a>
     </div>
   </div>
@@ -568,6 +620,18 @@ const GALLERY = [
   { src: "images/art-06.jpg", title: "Study IV",        caption: "Visual asset",       alt: "Visual study IV" },
   { src: "images/art-07.jpg", title: "Study V",         caption: "Visual asset",       alt: "Visual study V" }
 ];
+
+
+/* ---- CONTACT ---------------------------------------------------------------
+   email: your public email address (updates the Contact section AND the footer).
+   photo: your portrait. Save it as images/portrait.jpg (portrait orientation,
+          about 1200 x 1500 px works well) or change the filename here.
+   Your bio text is edited directly in the HTML (search for "EDIT YOUR BIO").
+--------------------------------------------------------------------------- */
+const CONTACT = {
+  email: "hello@example.com",
+  photo: "images/portrait.jpg"
+};
 
 
 /* ==========================================================================
@@ -852,10 +916,27 @@ function updateScrollProgress() {
 }
 window.addEventListener("scroll", () => requestAnimationFrame(updateScrollProgress), { passive: true });
 
+/* ==========================================================================
+   CONTACT (email links + portrait)
+   ========================================================================== */
+function initContact() {
+  // Every element marked data-email gets the address from CONTACT.email
+  document.querySelectorAll("[data-email]").forEach(a => {
+    a.href = "mailto:" + CONTACT.email;
+    a.textContent = CONTACT.email;
+  });
+  // Portrait, with a labeled placeholder if the file is missing
+  const box = $("#contact-photo");
+  const img = $("#contact-img");
+  img.addEventListener("error", () => box.classList.add("is-missing"));
+  img.src = CONTACT.photo;
+}
+
 /* ---------- Init ---------- */
 buildTracks();
 buildFilms();
 buildGallery();
+initContact();
 initReveal();
 updateScrollProgress();
 $("#year").textContent = new Date().getFullYear();
