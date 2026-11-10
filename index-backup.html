@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Christian Prater — Generative &amp; Orchestral Composition</title>
+<meta name="description" content="An intersection of generative AI and manual orchestral composition.">
+
+<!-- Fonts: Inter (interface) + JetBrains Mono (technical labels).
+     If offline, the CSS falls back to system fonts. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ==========================================================================
+   TABLE OF CONTENTS
+   1. Design tokens (colors, type, radius)   <- tweak the whole look here
+   2. Reset & base
+   3. Layout helpers + buttons
+   4. Header / nav
+   5. Hero
+   6. Audio player
+   7. Films
+   8. Gallery + lightbox
+   9. Footer
+   10. Motion & responsive
+
+   Design language: bright gallery-white surfaces, soft Apple-style grays,
+   generous whitespace, large tightly-tracked headlines, and small monospace
+   "spec sheet" labels, hairline grids and crop marks for the technical edge.
+   ========================================================================== */
+
+/* 1. DESIGN TOKENS ------------------------------------------------------- */
+:root {
+  /* Palette */
+  --c-white:    #ffffff;
+  --c-paper:    #f5f5f7;   /* soft section background + cards */
+  --c-gray-100: #efeff1;   /* placeholders */
+  --c-gray-200: #e5e5e8;   /* hairlines */
+  --c-gray-300: #d2d2d7;   /* slider track, crop marks */
+  --c-gray-400: #a1a1a6;   /* subtle text */
+  --c-gray-600: #6e6e73;   /* secondary text */
+  --c-gray-700: #48484a;   /* body text over images */
+  --c-charcoal: #1d1d1f;   /* primary text / buttons */
+  --c-accent:   #0071e3;   /* used ONLY for the "now playing" signal. Set to var(--c-charcoal) for pure monochrome. */
+
+  /* Type */
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Shape */
+  --r-lg: 28px;
+  --r-md: 20px;
+  --r-sm: 12px;
+
+  /* Layout */
+  --max-width:   1180px;
+  --gutter:      clamp(1.25rem, 4vw, 2.5rem);
+  --section-pad: clamp(5rem, 11vw, 9.5rem);
+  --header-h:    3.25rem;
+
+  --ease: cubic-bezier(.22,.61,.36,1);
+}
+
+/* 2. RESET & BASE -------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--header-h); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--c-white);
+  color: var(--c-charcoal);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+img { display: block; max-width: 100%; }
+button { font: inherit; color: inherit; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 3px; }
+
+h1, h2, h3 { font-family: var(--font-sans); font-weight: 600; margin: 0; line-height: 1.05; letter-spacing: -.03em; }
+
+/* Small monospace label used for numbering + metadata (the "tech edge") */
+.tag {
+  display: inline-flex; align-items: center; gap: .75rem;
+  margin: 0 0 1.5rem;
+  font-family: var(--font-mono); font-size: .72rem; font-weight: 500;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--c-gray-600);
+}
+.tag b { font-weight: 500; color: var(--c-charcoal); }
+.tag::after { content: ""; width: 2.5rem; height: 1px; background: var(--c-gray-300); }
+
+/* 3. LAYOUT HELPERS + BUTTONS -------------------------------------------- */
+.container { width: 100%; max-width: var(--max-width); margin-inline: auto; padding-inline: var(--gutter); }
+.section { padding-block: var(--section-pad); }
+.section--alt { background: var(--c-paper); }
+.section__head { margin-bottom: clamp(2.5rem, 6vw, 4.5rem); max-width: 44rem; }
+.section__title { font-size: clamp(2.4rem, 6vw, 4.25rem); font-weight: 700; letter-spacing: -.04em; }
+.section__intro { color: var(--c-gray-600); font-size: clamp(1.05rem, 1.6vw, 1.3rem); margin: 1.25rem 0 0; max-width: 34rem; letter-spacing: -.01em; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .8rem 1.6rem; border-radius: 999px;
+  font-size: .95rem; font-weight: 500; letter-spacing: -.005em;
+  border: 1px solid transparent;
+  transition: background .3s var(--ease), color .3s var(--ease), border-color .3s var(--ease), transform .3s var(--ease);
+}
+.btn--solid { background: var(--c-charcoal); color: var(--c-white); }
+.btn--solid:hover { background: #3a3a3c; }
+.btn--ghost { color: var(--c-charcoal); border-color: var(--c-gray-300); background: rgba(255,255,255,.6); }
+.btn--ghost:hover { border-color: var(--c-charcoal); }
+
+/* 4. HEADER / NAV -------------------------------------------------------- */
+.site-header {
+  position: fixed; inset: 0 0 auto 0; z-index: 50;
+  background: rgba(255,255,255,.72);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--c-gray-200);
+}
+/* Thin scroll-progress line along the bottom edge of the header (set by JS) */
+.site-header::after {
+  content: ""; position: absolute; left: 0; bottom: -1px; width: 100%; height: 1px;
+  background: var(--c-charcoal); transform-origin: left; transform: scaleX(var(--p, 0));
+}
+.site-header .container { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: var(--header-h); }
+.brand { display: inline-flex; align-items: center; gap: .6rem; font-weight: 600; font-size: .95rem; letter-spacing: -.01em; }
+.brand__dot { width: .55rem; height: .55rem; border-radius: 50%; background: var(--c-charcoal); }
+.nav { display: flex; gap: clamp(1.1rem, 3vw, 2.25rem); }
+.nav a { font-size: .8rem; color: var(--c-gray-600); transition: color .25s var(--ease); }
+.nav a:hover { color: var(--c-charcoal); }
+.header__cta { justify-self: end; padding: .4rem 1rem; font-size: .8rem; }
+
+/* 5. HERO ----------------------------------------------------------------
+   >>> SWAP YOUR HERO IMAGE: change the url() in --hero-image below.
+   A bright white wash sits on top so the page stays light and text stays crisp.
+   If the image file is missing, a pale gray gradient shows instead.        */
+.hero {
+  --hero-image: url("images/hero.jpg");           /* <-- YOUR EPIC BACKGROUND IMAGE */
+  position: relative; overflow: hidden;
+  min-height: 100svh;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  padding-top: var(--header-h);
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,.80) 0%, rgba(255,255,255,.42) 48%, rgba(255,255,255,.94) 100%),
+    var(--hero-image),
+    linear-gradient(135deg, #fbfbfc 0%, #eceef1 100%);
+  background-size: cover;
+  background-position: center;
+}
+/* Faint technical grid, fading out toward the edges */
+.hero__grid {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(to right,  rgba(29,29,31,.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(29,29,31,.055) 1px, transparent 1px);
+  background-size: 72px 72px;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 20%, transparent 72%);
+          mask-image: radial-gradient(ellipse at center, #000 20%, transparent 72%);
+}
+/* Camera-style crop marks in the four corners */
+.crop { position: absolute; width: 16px; height: 16px; border: 0 solid var(--c-gray-400); pointer-events: none; }
+.crop--tl { top: calc(var(--header-h) + 1.25rem); left: var(--gutter);  border-top-width: 1px; border-left-width: 1px; }
+.crop--tr { top: calc(var(--header-h) + 1.25rem); right: var(--gutter); border-top-width: 1px; border-right-width: 1px; }
+.crop--bl { bottom: 1.25rem; left: var(--gutter);  border-bottom-width: 1px; border-left-width: 1px; }
+.crop--br { bottom: 1.25rem; right: var(--gutter); border-bottom-width: 1px; border-right-width: 1px; }
+
+.hero__inner { position: relative; padding-block: 5rem; }
+.hero__inner .tag { justify-content: center; }
+.hero__inner .tag::before { content: ""; width: 2.5rem; height: 1px; background: var(--c-gray-300); }
+.hero__name { font-size: clamp(3.2rem, 11.5vw, 9.5rem); font-weight: 700; letter-spacing: -.055em; line-height: .92; }
+.hero__subtitle {
+  max-width: 36rem; margin: 2rem auto 0;
+  font-size: clamp(1.1rem, 2vw, 1.5rem); line-height: 1.35; letter-spacing: -.015em;
+  color: var(--c-gray-700);
+}
+.hero__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; margin-top: 2.75rem; }
+.hero__meta {
+  position: absolute; left: calc(var(--gutter) + 1.75rem); right: calc(var(--gutter) + 1.75rem); bottom: 1.1rem;
+  display: flex; justify-content: space-between;
+  font-family: var(--font-mono); font-size: .66rem; letter-spacing: .14em; text-transform: uppercase; color: var(--c-gray-600);
+}
+
+/* 6. AUDIO PLAYER --------------------------------------------------------- */
+.tracks { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+.track {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr auto;
+  grid-template-areas: "cover info btn" "bar bar bar";
+  column-gap: 1.5rem; row-gap: 1.4rem;
+  align-items: center;
+  padding: 1.25rem 1.5rem 1.25rem 1.25rem;
+  background: var(--c-paper);
+  border-radius: var(--r-lg);
+  box-shadow: inset 0 0 0 1px transparent;
+  transition: box-shadow .4s var(--ease), background .4s var(--ease);
+}
+.track.is-active { box-shadow: inset 0 0 0 1px var(--c-gray-300); }
+
+/* Cover art (uses the "cover" field in TRACKS). Falls back to a numbered tile. */
+.track__cover {
+  grid-area: cover; position: relative; aspect-ratio: 1 / 1; overflow: hidden;
+  border-radius: var(--r-sm);
+  background: linear-gradient(135deg, #fbfbfc, #e4e5e8);
+  display: grid; place-items: center;
+}
+.track__cover-num { font-family: var(--font-mono); font-size: 1.1rem; color: var(--c-gray-400); }
+.track__cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+.track__info { grid-area: info; min-width: 0; }
+.track__status {
+  display: none; align-items: center; gap: .5rem; margin-bottom: .5rem;
+  font-family: var(--font-mono); font-size: .64rem; letter-spacing: .14em; text-transform: uppercase; color: var(--c-accent);
+}
+.track__status i { width: 6px; height: 6px; border-radius: 50%; background: var(--c-accent); animation: pulse 1.6s ease-in-out infinite; }
+.track.is-playing .track__status { display: inline-flex; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+.track__title { font-size: clamp(1.35rem, 2.8vw, 1.9rem); letter-spacing: -.03em; }
+.track__meta { margin: .4rem 0 0; font-family: var(--font-mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--c-gray-600); }
+
+.track__btn {
+  grid-area: btn;
+  width: 3.5rem; height: 3.5rem; border-radius: 50%;
+  border: 0; background: var(--c-charcoal); color: var(--c-white);
+  display: grid; place-items: center;
+  transition: transform .3s var(--ease), background .3s var(--ease);
+}
+.track__btn:hover { transform: scale(1.06); background: #3a3a3c; }
+.track__btn svg { width: 1.1rem; height: 1.1rem; fill: currentColor; }
+.track__btn .icon-play { margin-left: 2px; }
+.track__btn .icon-pause { display: none; }
+.track.is-playing .icon-play  { display: none; }
+.track.is-playing .icon-pause { display: block; }
+
+.track__bar { grid-area: bar; display: flex; align-items: center; gap: 1rem; }
+.track__time { font-family: var(--font-mono); font-size: .72rem; font-variant-numeric: tabular-nums; color: var(--c-gray-600); min-width: 2.9rem; }
+.track__time:last-child { text-align: right; }
+.track__note { grid-area: bar; margin: 0; font-family: var(--font-mono); font-size: .72rem; color: var(--c-gray-600); display: none; }
+.track__note code { font-family: inherit; color: var(--c-charcoal); }
+.track.is-missing .track__bar  { display: none; }
+.track.is-missing .track__note { display: block; }
+
+/* Progress bar = native range input, restyled. --progress is set by JS. */
+.seek {
+  --progress: 0%;
+  flex: 1; height: 1.25rem; margin: 0; background: transparent;
+  -webkit-appearance: none; appearance: none; cursor: pointer;
+}
+.seek::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 4px;
+  background: linear-gradient(to right, var(--c-charcoal) var(--progress), var(--c-gray-300) var(--progress));
+}
+.seek::-moz-range-track { height: 4px; border-radius: 4px; background: var(--c-gray-300); }
+.seek::-moz-range-progress { height: 4px; border-radius: 4px; background: var(--c-charcoal); }
+.seek::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 12px; height: 12px; border-radius: 50%; margin-top: -4px;
+  background: var(--c-charcoal); border: 0;
+}
+.seek::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--c-charcoal); border: 0; }
+
+/* 7. FILMS ---------------------------------------------------------------
+   Two columns on desktop, one on mobile. Add featured: true to a film
+   (in the FILMS array) to make it span the full width.                     */
+.film-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(2.5rem, 5vw, 4rem) clamp(1rem, 2.5vw, 1.75rem); }
+.film--featured { grid-column: 1 / -1; }
+.film__frame { position: relative; aspect-ratio: 16 / 9; background: var(--c-gray-100); overflow: hidden; border-radius: var(--r-lg); }
+.film__play { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; }
+.film__thumb { width: 100%; height: 100%; object-fit: cover; transition: transform 1.2s var(--ease); }
+.film__play:hover .film__thumb { transform: scale(1.03); }
+.film__icon {
+  position: absolute; left: 50%; top: 50%; translate: -50% -50%;
+  width: 4.5rem; height: 4.5rem; border-radius: 50%;
+  background: rgba(255,255,255,.85); color: var(--c-charcoal);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  display: grid; place-items: center;
+  transition: background .3s var(--ease), color .3s var(--ease), transform .3s var(--ease);
+}
+.film__icon svg { width: 1.3rem; height: 1.3rem; fill: currentColor; margin-left: 3px; }
+.film__play:hover .film__icon { background: var(--c-charcoal); color: var(--c-white); transform: scale(1.06); }
+.film__frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+/* Placeholder when no YouTube link is set yet (or the thumbnail can't load) */
+.film.is-missing .film__thumb, .film.is-missing .film__icon { display: none; }
+.film.is-missing .film__frame { background: repeating-linear-gradient(135deg, #f1f1f3 0 14px, #e9e9ec 14px 28px); }
+.film.is-missing .film__frame::after {
+  content: "Add YouTube link"; position: absolute; left: 1.25rem; bottom: 1rem;
+  font-family: var(--font-mono); font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--c-gray-400);
+}
+.film__info { padding: 1.25rem .25rem 0; }
+.film__title { font-size: clamp(1.25rem, 2.4vw, 1.7rem); letter-spacing: -.03em; }
+.film--featured .film__title { font-size: clamp(1.6rem, 3.4vw, 2.5rem); }
+.film__meta { margin: .5rem 0 0; font-family: var(--font-mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--c-gray-600); }
+.film__desc { margin: .9rem 0 0; font-size: 1rem; color: var(--c-gray-600); max-width: 40rem; letter-spacing: -.01em; }
+
+/* 8. GALLERY --------------------------------------------------------------
+   Responsive grid. Add "size" to an item in the GALLERY array
+   ("wide", "tall" or "big") to vary its size.                              */
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-auto-flow: dense;
+  gap: clamp(.75rem, 1.6vw, 1.25rem);
+}
+.g-item { margin: 0; position: relative; display: flex; flex-direction: column; }
+.g-item button {
+  display: block; width: 100%; flex: 1 1 auto; min-height: 0; padding: 0; border: 0; background: var(--c-paper);
+  overflow: hidden; aspect-ratio: 1 / 1; position: relative; border-radius: var(--r-md);
+}
+.g-wide { grid-column: span 2; }
+.g-wide button { aspect-ratio: 2 / 1; }
+.g-tall { grid-row: span 2; }
+.g-tall button { aspect-ratio: 1 / 2; }
+.g-big  { grid-column: span 2; grid-row: span 2; }
+.g-big button { aspect-ratio: 1 / 1; }
+.g-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 1.2s var(--ease); }
+.g-item button:hover img { transform: scale(1.04); }
+.g-item figcaption {
+  display: flex; justify-content: space-between; gap: 1rem;
+  padding: .8rem .25rem 0;
+  font-family: var(--font-mono); font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--c-gray-600);
+}
+.g-item figcaption strong { font-weight: 500; color: var(--c-charcoal); }
+/* Placeholder shown when an image file is missing */
+.g-item.is-missing button::after {
+  content: attr(data-placeholder);
+  position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 1rem;
+  font-family: var(--font-mono); font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--c-gray-400);
+  background: repeating-linear-gradient(135deg, #f1f1f3 0 14px, #e9e9ec 14px 28px);
+}
+.g-item.is-missing img { display: none; }
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100;
+  display: none; place-items: center; padding: 2rem;
+  background: rgba(255,255,255,.94);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+}
+.lightbox.is-open { display: grid; }
+.lightbox figure { margin: 0; max-width: min(92vw, 1100px); }
+.lightbox img { max-height: 78vh; width: auto; margin-inline: auto; border-radius: var(--r-md); }
+.lightbox figcaption { text-align: center; margin-top: 1.25rem; font-family: var(--font-mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--c-gray-600); }
+.lightbox__close {
+  position: absolute; top: 1.1rem; right: 1.25rem;
+  padding: .5rem 1rem; border-radius: 999px; border: 1px solid var(--c-gray-300); background: var(--c-white);
+  font-size: .8rem; font-weight: 500;
+  transition: border-color .25s var(--ease);
+}
+.lightbox__close:hover { border-color: var(--c-charcoal); }
+
+/* 9. FOOTER --------------------------------------------------------------- */
+.site-footer { padding-block: 2.5rem; background: var(--c-paper); border-top: 1px solid var(--c-gray-200); font-size: .8rem; color: var(--c-gray-600); }
+.site-footer .container { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem 2rem; }
+.site-footer a { transition: color .25s var(--ease); }
+.site-footer a:hover { color: var(--c-charcoal); }
+.footer__links { display: flex; gap: 1.5rem; }
+
+/* 10. MOTION & RESPONSIVE ------------------------------------------------- */
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity 1s var(--ease), transform 1s var(--ease); }
+.reveal.is-visible { opacity: 1; transform: none; }
+
+@media (max-width: 760px) {
+  .film-grid { grid-template-columns: 1fr; }
+  .film--featured { grid-column: auto; }
+  .film__icon { width: 3.75rem; height: 3.75rem; }
+}
+@media (max-width: 700px) {
+  .site-header .container { grid-template-columns: auto 1fr; }
+  .nav { justify-self: end; gap: 1.1rem; }
+  .nav a[href="#contact"], .header__cta { display: none; }
+  .hero__meta { display: none; }
+  .track { grid-template-columns: 4rem 1fr auto; column-gap: 1rem; padding: 1rem; border-radius: var(--r-md); }
+  .track__btn { width: 3rem; height: 3rem; }
+  .g-wide, .g-big { grid-column: span 1; }
+  .g-wide button { aspect-ratio: 1 / 1; }
+  .g-big, .g-tall { grid-row: span 1; }
+  .g-tall button { aspect-ratio: 1 / 1; }
+  .film__frame { border-radius: var(--r-md); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .g-item img, .film__thumb { transition: none; }
+  .track__status i { animation: none; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ===================== HEADER ===================== -->
+<header class="site-header" id="site-header">
+  <div class="container">
+    <a href="#top" class="brand"><span class="brand__dot" aria-hidden="true"></span>C. Prater</a>
+    <nav class="nav" aria-label="Primary">
+      <a href="#music">Music</a>
+      <a href="#films">Films</a>
+      <a href="#gallery">Gallery</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <a class="btn btn--solid header__cta" href="#music">Listen</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ===================== 1. HERO =====================
+       Background image is set in CSS (.hero --hero-image). -->
+  <section class="hero" aria-label="Introduction">
+    <div class="hero__grid" aria-hidden="true"></div>
+    <span class="crop crop--tl" aria-hidden="true"></span>
+    <span class="crop crop--tr" aria-hidden="true"></span>
+    <span class="crop crop--bl" aria-hidden="true"></span>
+    <span class="crop crop--br" aria-hidden="true"></span>
+
+    <div class="container hero__inner">
+      <p class="tag">Digital Music Portfolio</p>
+      <h1 class="hero__name">Christian<br>Prater</h1>
+      <!-- >>> EDIT SUBTITLE TEXT HERE -->
+      <p class="hero__subtitle">An intersection of generative AI and manual orchestral composition.</p>
+      <div class="hero__actions">
+        <a class="btn btn--solid" href="#music">Listen now</a>
+        <a class="btn btn--ghost" href="#films">Watch films <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+
+    <div class="hero__meta" aria-hidden="true">
+      <span>Generative × Orchestral</span>
+      <span>Scroll ↓</span>
+    </div>
+  </section>
+
+  <!-- ===================== 2. AUDIO PLAYER ===================== -->
+  <section class="section" id="music" aria-labelledby="music-title">
+    <div class="container">
+      <div class="section__head reveal">
+        <p class="tag"><b>01</b> Music</p>
+        <h2 class="section__title" id="music-title">Selected works.</h2>
+        <p class="section__intro">Epic orchestral pieces, composed by hand and shaped alongside generative tools.</p>
+      </div>
+      <!-- Tracks are rendered here by JS from the TRACKS array below -->
+      <ol class="tracks reveal" id="tracks"></ol>
+    </div>
+  </section>
+
+  <!-- ===================== 3. FILMS (YouTube) =====================
+       Cards are rendered by JS from the FILMS array in the script below. -->
+  <section class="section section--alt" id="films" aria-labelledby="films-title">
+    <div class="container">
+      <div class="section__head reveal">
+        <p class="tag"><b>02</b> Films</p>
+        <h2 class="section__title" id="films-title">Moving image.</h2>
+        <!-- >>> EDIT INTRO TEXT -->
+        <p class="section__intro">Small project films I've scored, edited and worked on.</p>
+      </div>
+      <div class="film-grid" id="film-grid"></div>
+    </div>
+  </section>
+
+  <!-- ===================== 4. VISUAL GALLERY ===================== -->
+  <section class="section" id="gallery" aria-labelledby="gallery-title">
+    <div class="container">
+      <div class="section__head reveal">
+        <p class="tag"><b>03</b> Artwork</p>
+        <h2 class="section__title" id="gallery-title">Visual worlds.</h2>
+        <p class="section__intro">Album artwork and visual assets accompanying each piece.</p>
+      </div>
+      <!-- Items are rendered here by JS from the GALLERY array below -->
+      <div class="gallery reveal" id="gallery-grid"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="site-footer" id="contact">
+  <div class="container">
+    <span>© <span id="year"></span> Christian Prater</span>
+    <div class="footer__links">
+      <!-- >>> EDIT CONTACT LINK -->
+      <a href="mailto:hello@example.com">hello@example.com</a>
+      <a href="#top">Back to top ↑</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Lightbox for gallery images -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
+  <button class="lightbox__close" id="lightbox-close" type="button">Close</button>
+  <figure>
+    <img id="lightbox-img" src="" alt="">
+    <figcaption id="lightbox-cap"></figcaption>
+  </figure>
+</div>
+
+<script>
+/* ==========================================================================
+   CONFIGURATION — this is the ONLY section you need to edit to add content.
+   ========================================================================== */
+
+/* ---- AUDIO TRACKS ----------------------------------------------------------
+   1. Put your audio files in an "audio" folder next to this index.html.
+   2. Update "src" with the exact filename (mp3, wav, ogg, m4a all work).
+   3. "cover" is optional square artwork shown beside the track. Point it at
+      any image in the "images" folder (or delete the line for a numbered tile).
+   4. Add or remove objects to change the number of tracks.
+--------------------------------------------------------------------------- */
+const TRACKS = [
+  {
+    title: "Track One Title",
+    meta:  "Orchestral · Epic · 2026",
+    src:   "audio/track-01.mp3",
+    cover: "images/art-01.jpg"
+  },
+  {
+    title: "Track Two Title",
+    meta:  "Orchestral · Cinematic · 2026",
+    src:   "audio/track-02.mp3",
+    cover: "images/art-05.jpg"
+  }
+  /* , { title: "Track Three", meta: "…", src: "audio/track-03.mp3", cover: "images/art-02.jpg" } */
+];
+
+/* ---- FILMS -----------------------------------------------------------------
+   youtube:  paste the full YouTube link OR just the 11-character ID, e.g.
+             "https://www.youtube.com/watch?v=XXXXXXXXXXX"
+             "https://youtu.be/XXXXXXXXXXX"
+             "XXXXXXXXXXX"
+   featured: true  -> optional, makes that film span the full width.
+   description: optional short text under the title.
+   Add or remove objects freely; keep the commas between them.
+--------------------------------------------------------------------------- */
+const FILMS = [
+  {
+    title: "Film Title One",
+    meta: "Score & edit · 2026",
+    description: "A short sentence about the project and your role in it.",
+    youtube: "PASTE_YOUTUBE_LINK_HERE",
+    featured: true
+  },
+  {
+    title: "Film Title Two",
+    meta: "Composer · 2025",
+    youtube: "PASTE_YOUTUBE_LINK_HERE"
+  },
+  {
+    title: "Film Title Three",
+    meta: "Sound design · 2025",
+    youtube: "PASTE_YOUTUBE_LINK_HERE"
+  }
+];
+
+/* ---- GALLERY ---------------------------------------------------------------
+   1. Put your images in an "images" folder next to this index.html.
+   2. "size" is optional: "wide" (2 cols), "tall" (2 rows), "big" (2x2).
+   3. "alt" describes the image for screen readers.
+   Missing files automatically display a labeled placeholder.
+--------------------------------------------------------------------------- */
+const GALLERY = [
+  { src: "images/art-01.jpg", title: "Album Cover I",   caption: "Cover art · 2026",   alt: "Album cover artwork I",   size: "big"  },
+  { src: "images/art-02.jpg", title: "Study II",        caption: "Visual asset",       alt: "Visual study II" },
+  { src: "images/art-03.jpg", title: "Study III",       caption: "Visual asset",       alt: "Visual study III" },
+  { src: "images/art-04.jpg", title: "Panorama",        caption: "Wide format",        alt: "Panoramic artwork",       size: "wide" },
+  { src: "images/art-05.jpg", title: "Album Cover II",  caption: "Cover art · 2026",   alt: "Album cover artwork II",  size: "tall" },
+  { src: "images/art-06.jpg", title: "Study IV",        caption: "Visual asset",       alt: "Visual study IV" },
+  { src: "images/art-07.jpg", title: "Study V",         caption: "Visual asset",       alt: "Visual study V" }
+];
+
+
+/* ==========================================================================
+   APPLICATION CODE — no edits needed below unless you want to change behavior.
+   ========================================================================== */
+
+/* ---------- Utilities ---------- */
+const $ = (sel, root = document) => root.querySelector(sel);
+
+/** Format seconds as m:ss */
+function fmt(sec) {
+  if (!isFinite(sec) || sec < 0) return "0:00";
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+/* ==========================================================================
+   AUDIO PLAYER
+   Each track gets its own <audio> element. Only one plays at a time, and
+   when a track ends the next one starts automatically.
+   ========================================================================== */
+const trackList = $("#tracks");
+const players = []; // { audio, el, btn, seek, cur, dur }
+
+const ICON_PLAY  = '<svg class="icon-play"  viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>';
+const ICON_PAUSE = '<svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4" width="4.5" height="16" rx="1"/><rect x="14" y="4" width="4.5" height="16" rx="1"/></svg>';
+
+function buildTracks() {
+  TRACKS.forEach((t, i) => {
+    const li = document.createElement("li");
+    li.className = "track";
+    li.innerHTML = `
+      <div class="track__cover">
+        <span class="track__cover-num">${String(i + 1).padStart(2, "0")}</span>
+      </div>
+      <div class="track__info">
+        <span class="track__status"><i></i>Now playing</span>
+        <h3 class="track__title"></h3>
+        <p class="track__meta"></p>
+      </div>
+      <button class="track__btn" type="button" aria-label="Play ${t.title}">${ICON_PLAY}${ICON_PAUSE}</button>
+      <div class="track__bar">
+        <span class="track__time" data-cur>0:00</span>
+        <input class="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek ${t.title}">
+        <span class="track__time" data-dur>0:00</span>
+      </div>
+      <p class="track__note">Audio file not found. Add <code></code></p>
+    `;
+    // Set text safely (avoids injecting HTML from config)
+    $(".track__title", li).textContent = t.title;
+    $(".track__meta", li).textContent = t.meta;
+    $(".track__note code", li).textContent = t.src;
+
+    // Optional cover art; if the file is missing, the numbered tile stays visible
+    if (t.cover) {
+      const img = document.createElement("img");
+      img.alt = ""; img.loading = "lazy"; img.src = t.cover;
+      img.addEventListener("error", () => img.remove());
+      $(".track__cover", li).appendChild(img);
+    }
+
+    const audio = new Audio();
+    audio.preload = "metadata";
+    audio.src = t.src;
+
+    const p = {
+      audio, el: li,
+      btn:  $(".track__btn", li),
+      seek: $(".seek", li),
+      cur:  $("[data-cur]", li),
+      dur:  $("[data-dur]", li),
+      title: t.title
+    };
+    players.push(p);
+    wireTrack(p, i);
+    trackList.appendChild(li);
+  });
+}
+
+function wireTrack(p, index) {
+  const { audio, el, btn, seek, cur, dur } = p;
+
+  // Play / pause button
+  btn.addEventListener("click", () => {
+    if (audio.paused) playTrack(index); else audio.pause();
+  });
+
+  // Duration known
+  audio.addEventListener("loadedmetadata", () => { dur.textContent = fmt(audio.duration); });
+
+  // Progress update while playing
+  audio.addEventListener("timeupdate", () => {
+    if (!audio.duration) return;
+    const pct = (audio.currentTime / audio.duration) * 100;
+    seek.value = pct * 10;
+    seek.style.setProperty("--progress", pct + "%");
+    cur.textContent = fmt(audio.currentTime);
+  });
+
+  // Scrubbing
+  seek.addEventListener("input", () => {
+    if (!audio.duration) return;
+    audio.currentTime = (seek.value / 1000) * audio.duration;
+    seek.style.setProperty("--progress", seek.value / 10 + "%");
+  });
+
+  // State classes + accessible labels
+  audio.addEventListener("play", () => {
+    el.classList.add("is-playing", "is-active");
+    btn.setAttribute("aria-label", `Pause ${p.title}`);
+  });
+  audio.addEventListener("pause", () => {
+    el.classList.remove("is-playing");
+    btn.setAttribute("aria-label", `Play ${p.title}`);
+  });
+
+  // Auto-advance to the next track
+  audio.addEventListener("ended", () => {
+    seek.value = 0; seek.style.setProperty("--progress", "0%"); cur.textContent = "0:00";
+    if (index + 1 < players.length) playTrack(index + 1);
+  });
+
+  // Missing / unsupported file
+  audio.addEventListener("error", () => { el.classList.add("is-missing"); });
+}
+
+/** Start a track and pause all others */
+function playTrack(index) {
+  players.forEach((p, i) => {
+    if (i !== index) { p.audio.pause(); p.el.classList.remove("is-active"); }
+  });
+  const target = players[index];
+  target.audio.play().catch(() => target.el.classList.add("is-missing"));
+}
+
+/* ==========================================================================
+   FILMS (click-to-load YouTube)
+   Shows a thumbnail first; the real player only loads when clicked, which
+   keeps the page fast and avoids YouTube tracking until someone presses play.
+   ========================================================================== */
+const filmGrid = $("#film-grid");
+const PLAY_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>';
+
+/** Accepts a full YouTube URL or a bare 11-char ID. Returns the ID or null. */
+function getYouTubeId(input) {
+  if (!input) return null;
+  const s = String(input).trim();
+  if (/^[\w-]{11}$/.test(s)) return s;
+  const m = s.match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/)([\w-]{11})/);
+  return m ? m[1] : null;
+}
+
+function buildFilms() {
+  FILMS.forEach(f => {
+    const id = getYouTubeId(f.youtube);
+
+    const art = document.createElement("article");
+    art.className = "film reveal" + (f.featured ? " film--featured" : "");
+
+    const frame = document.createElement("div");
+    frame.className = "film__frame";
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "film__play";
+    btn.setAttribute("aria-label", `Play ${f.title}`);
+
+    const img = document.createElement("img");
+    img.className = "film__thumb";
+    img.alt = `${f.title} thumbnail`;
+    img.loading = "lazy";
+    if (id) {
+      img.src = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+      img.addEventListener("error", () => art.classList.add("is-missing"));
+    } else {
+      art.classList.add("is-missing"); // no valid link yet -> placeholder
+    }
+
+    const icon = document.createElement("span");
+    icon.className = "film__icon";
+    icon.innerHTML = PLAY_SVG;
+    btn.append(img, icon);
+    frame.appendChild(btn);
+
+    // On click, swap the thumbnail for the real player (privacy-friendly domain)
+    btn.addEventListener("click", () => {
+      if (!id) return;
+      const iframe = document.createElement("iframe");
+      iframe.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+      iframe.title = f.title;
+      iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen";
+      iframe.allowFullscreen = true;
+      frame.replaceChildren(iframe);
+    });
+
+    const info = document.createElement("div");
+    info.className = "film__info";
+    info.innerHTML = '<h3 class="film__title"></h3><p class="film__meta"></p>';
+    $(".film__title", info).textContent = f.title;
+    $(".film__meta", info).textContent = f.meta || "";
+    if (f.description) {
+      const d = document.createElement("p");
+      d.className = "film__desc";
+      d.textContent = f.description;
+      info.appendChild(d);
+    }
+
+    art.append(frame, info);
+    filmGrid.appendChild(art);
+  });
+}
+
+/* ==========================================================================
+   GALLERY + LIGHTBOX
+   ========================================================================== */
+const grid = $("#gallery-grid");
+const lightbox = $("#lightbox");
+const lbImg = $("#lightbox-img");
+const lbCap = $("#lightbox-cap");
+
+function buildGallery() {
+  GALLERY.forEach(item => {
+    const fig = document.createElement("figure");
+    fig.className = "g-item" + (item.size ? " g-" + item.size : "");
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.setAttribute("aria-label", `View ${item.title}`);
+    btn.dataset.placeholder = item.title;
+
+    const img = document.createElement("img");
+    img.src = item.src; img.alt = item.alt || item.title; img.loading = "lazy";
+    // Show a labeled placeholder if the file can't be loaded
+    img.addEventListener("error", () => fig.classList.add("is-missing"));
+
+    btn.appendChild(img);
+    btn.addEventListener("click", () => {
+      if (fig.classList.contains("is-missing")) return;
+      openLightbox(item);
+    });
+
+    const cap = document.createElement("figcaption");
+    cap.innerHTML = "<strong></strong><span></span>";
+    cap.firstChild.textContent = item.title;
+    cap.lastChild.textContent = item.caption || "";
+
+    fig.append(btn, cap);
+    grid.appendChild(fig);
+  });
+}
+
+function openLightbox(item) {
+  lbImg.src = item.src; lbImg.alt = item.alt || item.title;
+  lbCap.textContent = `${item.title}${item.caption ? " — " + item.caption : ""}`;
+  lightbox.classList.add("is-open");
+  $("#lightbox-close").focus();
+}
+function closeLightbox() { lightbox.classList.remove("is-open"); lbImg.src = ""; }
+
+$("#lightbox-close").addEventListener("click", closeLightbox);
+lightbox.addEventListener("click", e => { if (e.target === lightbox) closeLightbox(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeLightbox(); });
+
+/* ==========================================================================
+   SCROLL REVEAL (subtle fade-in) + HEADER SCROLL-PROGRESS LINE
+   ========================================================================== */
+function initReveal() {
+  const els = document.querySelectorAll(".reveal");
+  if (!("IntersectionObserver" in window)) { els.forEach(el => el.classList.add("is-visible")); return; }
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(en => { if (en.isIntersecting) { en.target.classList.add("is-visible"); io.unobserve(en.target); } });
+  }, { threshold: 0.12 });
+  els.forEach(el => io.observe(el));
+}
+
+const siteHeader = $("#site-header");
+function updateScrollProgress() {
+  const doc = document.documentElement;
+  const max = doc.scrollHeight - doc.clientHeight;
+  siteHeader.style.setProperty("--p", max > 0 ? (doc.scrollTop / max).toFixed(4) : 0);
+}
+window.addEventListener("scroll", () => requestAnimationFrame(updateScrollProgress), { passive: true });
+
+/* ---------- Init ---------- */
+buildTracks();
+buildFilms();
+buildGallery();
+initReveal();
+updateScrollProgress();
+$("#year").textContent = new Date().getFullYear();
+</script>
+</body>
+</html>
